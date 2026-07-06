@@ -21,22 +21,26 @@ library(dispRity)
 ```
 
 ```{r}
-BPA.lf <- list.files("G:/Shared drives/African Paleosciences Laboratory/3D scan files/Silcrete/Backed tool project/South Africa Backed Tools/BPA/Silhouettes", pattern="plan",
-                     full.names=T)
-KG.lf <- list.files("G:/Shared drives/African Paleosciences Laboratory/3D scan files/Silcrete/Backed tool project/South Africa Backed Tools/KG/Silhouettes", patter="plan",
-                     full.names=T)
+BPA_files <- list.files(paste0(here::here(),"/data/BPA/Silhouettes"), pattern = 'plan', full.names = TRUE)
 
-NBC.lf <- list.files("G:/Shared drives/African Paleosciences Laboratory/3D scan files/Silcrete/Backed tool project/South Africa Backed Tools/NBC/Silhouettes", patter="plan",, 
+KG_files <- list.files(paste0(here::here(),"/data/KG/Silhouettes"), pattern="plan",
                      full.names=T)
 
-BNK1.lf <- list.files("G:/Shared drives/African Paleosciences Laboratory/3D scan files/Silcrete/Backed tool project/South Africa Backed Tools/BNK1/Silhouettes", patter="plan",
+NBC_files <- list.files(paste0(here::here(),"/data/NBC/Silhouettes"), pattern="plan",, 
+                     full.names=T)
+
+BNK1_files <- list.files(paste0(here::here(),"/data/BNK1/Silhouettes"), pattern="plan",
+                     full.names=T)
+
+MAT_files <- list.files(paste0(here::here(),"/data/MAT/Silhouettes"), pattern="plan",
                      full.names=T)
 
 
-BPA <- Momocs::import_jpg(BPA.lf)
-KG <- Momocs::import_jpg(KG.lf)
-NBC <- Momocs::import_jpg(NBC.lf)
-BNK1 <- Momocs::import_jpg(BNK1.lf)
+BPA <- Momocs::import_jpg(BPA_files)
+KG <- Momocs::import_jpg(KG_files)
+NBC <- Momocs::import_jpg(NBC_files)
+BNK1 <- Momocs::import_jpg(BNK1_files)
+MAT <- Momocs::import_jpg(MAT_files)
 
 ```
 
@@ -45,25 +49,37 @@ li <- list()
 li <- append(BPA, KG)
 li <- append(li, NBC)
 li <- append(li, BNK1)
+li <- append(li, MAT)
 
 coo <- Momocs::Out(li, fac=c(rep("BPA", length(BPA)),
                              rep("KG", length(KG)),
                              rep("NBC", length(NBC)),
-                             rep("BNK1", length(BNK1))))
+                             rep("BNK1", length(BNK1)),
+                             rep("MAT", length(MAT)))
+                   )
 
 Momocs::panel(coo, fac = "value")
 ```
 
 ```{r}
-coo |>
+coo_std <- coo |>
   Momocs::coo_center() |> Momocs::coo_scale() |>
-  Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
-  print() |> stack()
+  Momocs::coo_align()
+
+coo.f <- Momocs::efourier(coo_std)
+
+
+coo.p <- Momocs::PCA(coo.f)
+coo.p$fac$value = factor(coo.p$fac$value)
 ```
 
 ```{r}
-coo.f <- Momocs::efourier(coo)
-coo.p <- Momocs::PCA(coo.f)
+plot_PCA(coo.p, ~value)
+Momocs::MANOVA(coo.p, ~value)
+MANOVA_PW(coo.p, fac = "value", retain = 3)
+
+lda <- LDA(coo.p, 1)
+plot_LDA(lda)
 ```
 
 ```{r}
@@ -74,33 +90,36 @@ bootstrapped_data <- boot.matrix(grouped_data, bootstraps = 1000)
 
 disparity_results <- dispRity(bootstrapped_data, metric = c(sum, variances))
 
+disparity_var <- dispRity(bootstrapped_data, metric = variances)
+
 summary(disparity_results)
-test.dispRity(disparity_results, test = wilcox.test,
+
+test.dispRity(disparity_results, bhatt.coeff,
   correction = "bonferroni")
 
+test.dispRity(disparity_results, test = t.test, comparisons = "pairwise",
+              correction = "bonferroni")
+
+
+test.dispRity(disparity_var, test = t.test, comparisons = "pairwise",
+     concatenate = FALSE, correction = "bonferroni",
+     conc.quantiles = c(mean, c(95, 5)))
+
+
 plot(disparity_results, type = "box")
-```
-
-```{r}
-plot(coo.p, ~value)
-Momocs::MANOVA(coo.p, ~value)
-
-#Momocs::PCcontrib(coo.p, nax=1:3)
-
-Momocs::hcontrib(coo.f, harm.range = 1:12)
-boxplot(coo.f)
+plot(disparity_var, type = "box")
 ```
 
 # Examine BNK1 separately by Strata
 
 ```{r}
 
-BNK1_1 <- BNK1.lf[BNK1.lf %like% "%_1_%"]
-BNK1_2 <- BNK1.lf[BNK1.lf %like% "%_2_%"]
-BNK1_4 <- BNK1.lf[BNK1.lf %like% "%_4_%"]
-BNK1_5 <- BNK1.lf[BNK1.lf %like% "%_5_%"]
-BNK1_6 <- BNK1.lf[BNK1.lf %like% "%_6_%"]
-BNK1_7 <- BNK1.lf[BNK1.lf %like% "%_7_%"]
+BNK1_1 <- BNK1_files[BNK1_files %like% "%_1_%"]
+BNK1_2 <- BNK1_files[BNK1_files %like% "%_2_%"]
+BNK1_4 <- BNK1_files[BNK1_files %like% "%_4_%"]
+BNK1_5 <- BNK1_files[BNK1_files %like% "%_5_%"]
+BNK1_6 <- BNK1_files[BNK1_files %like% "%_6_%"]
+BNK1_7 <- BNK1_files[BNK1_files %like% "%_7_%"]
 
 BNK1_2.5 <- append(BNK1_2, c(BNK1_4, BNK1_5))
 BNK1_6.7 <- append(BNK1_6, BNK1_7)
@@ -138,11 +157,11 @@ coo_bnk |>
   Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
   print() |> stack()
 ```
+
 ```{r}
 coo.f_bnk <- Momocs::efourier(coo_bnk)
 coo.p_bnk <- Momocs::PCA(coo.f_bnk)
 ```
-
 
 ```{r}
 plot(coo.p_bnk, ~value)
@@ -155,28 +174,41 @@ boxplot(coo.f_bnk)
 ```
 
 ```{r}
-grouped_data_bnk <- custom.subsets(coo.p_bnk$x[,1:3], group = as.factor(coo.p_bnk$fac$value))
+grouped_data_bnk <- custom.subsets(coo.p_bnk$x[,1:3], 
+                                   group = as.factor(coo.p_bnk$fac$value))
 
 bootstrapped_data_bnk <- boot.matrix(grouped_data_bnk, bootstraps = 1000)
 
-disparity_results_bnk <- dispRity(bootstrapped_data_bnk, metric = c(sum, variances))
+disparity_results_bnk <- dispRity(bootstrapped_data_bnk, 
+                                  metric = c(sum, variances))
+
+disparity_var_bnk <- dispRity(bootstrapped_data_bnk, metric = variances)
 
 summary(disparity_results_bnk)
-test.dispRity(disparity_results_bnk, test = wilcox.test,
+test.dispRity(disparity_results_bnk, bhatt.coeff,
   correction = "bonferroni")
 
+test.dispRity(disparity_results_bnk, test = wilcox.test,
+              comparisons = "pairwise",
+     correction = "bonferroni")
 plot(disparity_results_bnk, type = "box")
-```
 
+
+test.dispRity(disparity_var_bnk, test = t.test, comparisons = "pairwise",
+     concatenate = FALSE, correction = "bonferroni",
+     conc.quantiles = c(mean, c(95, 5)))
+
+plot(disparity_var_bnk, type = "box")
+```
 
 # Examine NBC separately by Strata
 
 ```{r}
 #NBC_1 <- NBC.lf[NBC.lf %like% "%_1_%"]
-NBC_3 <- NBC.lf[NBC.lf %like% "%_3_%"]
-NBC_4 <- NBC.lf[NBC.lf %like% "%_4_%"]
-NBC_5 <- NBC.lf[NBC.lf %like% "%_5_%"]
-NBC_8 <- NBC.lf[NBC.lf %like% "%_8_%"]
+NBC_3 <- NBC_files[NBC_files %like% "%_3_%"]
+NBC_4 <- NBC_files[NBC_files %like% "%_4_%"]
+NBC_5 <- NBC_files[NBC_files %like% "%_5_%"]
+NBC_8 <- NBC_files[NBC_files %like% "%_8_%"]
 
 
 NBC_4.8 <- append(NBC_4, c(NBC_5, NBC_8))
@@ -202,12 +234,11 @@ coo_nbc |>
   Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
   print() |> stack()
 ```
+
 ```{r}
 coo.f_nbc <- Momocs::efourier(coo_nbc)
 coo.p_nbc <- Momocs::PCA(coo.f_nbc)
 ```
-
-
 
 ```{r}
 plot(coo.p_nbc, ~value)
@@ -226,19 +257,31 @@ bootstrapped_data_nbc <- boot.matrix(grouped_data_nbc, bootstraps = 1000)
 
 disparity_results_nbc <- dispRity(bootstrapped_data_nbc, metric = c(sum, variances))
 
+
+disparity_var_nbc <- dispRity(bootstrapped_data_nbc, metric = variances)
+
 summary(disparity_results_nbc)
+test.dispRity(disparity_results_nbc, bhatt.coeff,
+  correction = "bonferroni")
 
+test.dispRity(disparity_results_nbc, test = wilcox.test)
 plot(disparity_results_nbc, type = "box")
-```
 
+
+test.dispRity(disparity_var_nbc, test = t.test,
+     concatenate = FALSE,
+     conc.quantiles = c(mean, c(95, 5)))
+
+plot(disparity_var_nbc, type = "box")
+```
 
 # Examine KG separately by Strata
 
 ```{r}
 
-DGL <- KG.lf[KG.lf %like% "%_DGL_%"]
-GBL <- KG.lf[KG.lf %like% "%_GBL_%"]
-SGL <- KG.lf[KG.lf %like% "%_SGL_%"]
+DGL <- KG_files[KG_files %like% "%_DGL_%"]
+GBL <- KG_files[KG_files %like% "%_GBL_%"]
+SGL <- KG_files[KG_files %like% "%_SGL_%"]
 
 DGL <- Momocs::import_jpg(DGL)
 GBL <- Momocs::import_jpg(GBL)
@@ -257,19 +300,17 @@ coo_kg <- Momocs::Out(li_kg, fac=c(rep("DGL", length(DGL)),
                              rep("SGL", length(SGL))))
 
 Momocs::panel(coo_kg, fac = "value")
-```
 
-```{r}
 coo_kg |>
   Momocs::coo_center() |> Momocs::coo_scale() |>
   Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
   print() |> stack()
 ```
+
 ```{r}
 coo.f_kg <- Momocs::efourier(coo_kg)
 coo.p_kg <- Momocs::PCA(coo.f_kg)
 ```
-
 
 ```{r}
 plot(coo.p_kg, ~value)
@@ -282,80 +323,245 @@ boxplot(coo.f_kg)
 ```
 
 ```{r}
-grouped_data_kg <- custom.subsets(coo.p_kg$x[,1:3], group = as.factor(coo.p_kg$fac$value))
+grouped_data_kg <- custom.subsets(coo.p_kg$x[,1:3], 
+                                  group = as.factor(coo.p_kg$fac$value))
 
 bootstrapped_data_kg <- boot.matrix(grouped_data_kg, bootstraps = 1000)
 
-disparity_results_kg <- dispRity(bootstrapped_data_kg, metric = c(sum, variances))
+disparity_results_kg<- dispRity(bootstrapped_data_kg, metric = c(sum, variances))
+
+
+disparity_var_kg <- dispRity(bootstrapped_data_kg, metric = variances)
 
 summary(disparity_results_kg)
-test.dispRity(disparity_results_kg, test = wilcox.test,
+test.dispRity(disparity_results_kg, bhatt.coeff,
   correction = "bonferroni")
 
+test.dispRity(disparity_results_kg, test = wilcox.test,
+  correction = "bonferroni")
 plot(disparity_results_kg, type = "box")
+
+
+test.dispRity(disparity_var_kg, test = t.test,
+     concatenate = FALSE,
+  correction = "bonferroni",
+     conc.quantiles = c(mean, c(95, 5)))
+
+plot(disparity_var_kg, type = "box")
 ```
 
-# Examine KG separately by Strata
+# Examine MAT separately by Strata
 
 ```{r}
 
-DGL <- KG.lf[KG.lf %like% "%_DGL_%"]
-GBL <- KG.lf[KG.lf %like% "%_GBL_%"]
-SGL <- KG.lf[KG.lf %like% "%_SGL_%"]
+C <- MAT_files[MAT_files %like% "%plan%"]
 
-DGL <- Momocs::import_jpg(DGL)
-GBL <- Momocs::import_jpg(GBL)
-SGL <- Momocs::import_jpg(SGL)
+C <- Momocs::import_jpg(C)
 
 ```
 
 ```{r}
-li_kg <- list()
-li_kg <- append(DGL, GBL)
+li_mat <- list()
+li_mat <- append(C, li_mat)
 
-li_kg <- append(li_kg, SGL)
+coo_mat <- Momocs::Out(li_mat, fac=c(rep("C", length(C))))
 
-coo_kg <- Momocs::Out(li_kg, fac=c(rep("DGL", length(DGL)),
-                             rep("GBL", length(GBL)),
-                             rep("SGL", length(SGL))))
-
-Momocs::panel(coo_kg, fac = "value")
+Momocs::panel(coo_mat, fac = "value")
 ```
 
 ```{r}
-coo_kg |>
+coo_mat |>
   Momocs::coo_center() |> Momocs::coo_scale() |>
   Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
   print() |> stack()
 ```
+
 ```{r}
-coo.f_kg <- Momocs::efourier(coo_kg)
-coo.p_kg <- Momocs::PCA(coo.f_kg)
+coo.f_mat <- Momocs::efourier(coo_mat)
+coo.p_mat <- Momocs::PCA(coo.f_mat)
 ```
 
-
 ```{r}
-plot(coo.p_kg, ~value)
-Momocs::MANOVA(coo.p_kg, ~value)
+plot(coo.p_mat, ~value)
+#Momocs::MANOVA(coo.p_mat, ~value)
 
 #Momocs::PCcontrib(coo.p_bnk, nax=1:3)
 
-Momocs::hcontrib(coo.f_kg, harm.range = 1:12)
-boxplot(coo.f_kg)
+Momocs::hcontrib(coo.f_mat, harm.range = 1:12)
+boxplot(coo.f_mat)
+```
+
+# Examine BPA separately by Strata
+
+```{r}
+
+BLD <- BPA_files[BPA_files %like% "%plan%"]
+
+BLD <- Momocs::import_jpg(BLD)
+
 ```
 
 ```{r}
-grouped_data_kg <- custom.subsets(coo.p_kg$x[,1:3], group = as.factor(coo.p_kg$fac$value))
+li_bpa <- list()
+li_bpa <- append(BLD, li_bpa)
 
-bootstrapped_data_kg <- boot.matrix(grouped_data_kg, bootstraps = 1000)
+coo_bpa <- Momocs::Out(li_bpa, fac=c(rep("BLD", length(BLD))))
 
-disparity_results_kg <- dispRity(bootstrapped_data_kg, metric = c(sum, variances))
+Momocs::panel(coo_bpa, fac = "value")
 
-summary(disparity_results_kg)
-test.dispRity(disparity_results_kg, test = wilcox.test,
-  correction = "bonferroni")
-
-plot(disparity_results_kg, type = "box")
+coo_bpa |>
+  Momocs::coo_center() |> Momocs::coo_scale() |>
+  Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
+  print() |> stack()
 ```
 
+```{r}
+coo.f_bpa <- Momocs::efourier(coo_bpa)
+coo.p_bpa <- Momocs::PCA(coo.f_bpa)
+```
 
+```{r}
+plot(coo.p_bpa, ~value)
+#Momocs::MANOVA(coo.p_mat, ~value)
+
+#Momocs::PCcontrib(coo.p_bnk, nax=1:3)
+
+Momocs::hcontrib(coo.f_bpa, harm.range = 1:12)
+boxplot(coo.f_bpa)
+```
+
+# Within and Between Sites
+
+```{r}
+li_all_1 <- list()
+li_all_1 <- append(C, li_kg)
+li_all_1 <- append(li_all_1, six_seven)
+
+coo_all_1 <- Momocs::Out(li_all_1, fac=c(rep("MAT (5.4-7.7ka)", length(C)),
+                                     rep("KG (6.6ka)", length(DGL)+
+                                           length(GBL) + 
+                                           length(SGL)),
+                                     rep("BNK1 (6.7ka)", length(six_seven))))
+
+Momocs::panel(coo_all_1, fac = "value")
+
+
+li_all_2 <- list()
+li_all_2 <- append(NBCthree, NBCfour_eight)
+li_all_2 <- append(li_all_2, two_five)
+
+coo_all_2 <- Momocs::Out(li_all_2, fac=c(rep("NBC (3ka)", length(NBCthree)),
+                                         rep("NBC (4.8ka)", 
+                                             length(NBCfour_eight)),
+                                     rep("BNK1 (2.5ka)", length(two_five))))
+
+Momocs::panel(coo_all_2, fac = "value")
+
+
+
+```
+
+```{r}
+coo_all1_std <- coo_all_1 |>
+  Momocs::coo_center() |> Momocs::coo_scale() |>
+  Momocs::coo_align()
+
+coo_f_all1 <- Momocs::efourier(coo_all1_std)
+
+coo_pca_all1 <- Momocs::PCA(coo_f_all1)
+coo_pca_all1$fac$value = factor(coo_pca_all1$fac$value)
+
+
+#######################################################
+coo_all2_std <- coo_all_2 |>
+  Momocs::coo_center() |> Momocs::coo_scale() |>
+  Momocs::coo_align()
+
+coo_f_all2 <- Momocs::efourier(coo_all2_std)
+
+coo_pca_all2 <- Momocs::PCA(coo_f_all2)
+coo_pca_all2$fac$value = factor(coo_pca_all2$fac$value)
+
+
+```
+
+```{r}
+plot_PCA(coo_pca_all1, ~value)
+Momocs::MANOVA(coo_pca_all1, ~value)
+MANOVA_PW(coo_pca_all1, fac = "value", retain = 3)
+
+all_lda1 <- LDA(coo_pca_all1, 1)
+plot_LDA(all_lda1)
+
+```
+
+```{r}
+plot_PCA(coo_pca_all2, ~value)
+Momocs::MANOVA(coo_pca_all2, ~value)
+MANOVA_PW(coo_pca_all2, fac = "value", retain = 3)
+
+all_lda2 <- LDA(coo_pca_all2, 1)
+plot_LDA(all_lda2)
+```
+
+```{r}
+grouped_data_all1 <- custom.subsets(coo_pca_all1$x[,1:3], 
+                                   group = as.factor(coo_pca_all1$fac$value))
+
+bootstrapped_data_all1 <- boot.matrix(grouped_data_all1, bootstraps = 1000)
+
+disparity_results_all1 <- dispRity(bootstrapped_data_all1, 
+                                  metric = c(sum, variances))
+
+disparity_var_all1 <- dispRity(bootstrapped_data_all1, metric = variances)
+
+summary(disparity_results_all1)
+test.dispRity(disparity_results_all1, bhatt.coeff,
+  correction = "bonferroni")
+
+
+
+
+
+test.dispRity(disparity_results_all1, test = wilcox.test,
+              comparisons = "pairwise", correction = "bonferroni")
+
+test.dispRity(disparity_var_all1, test = t.test, comparisons = "pairwise",
+     concatenate = FALSE, correction = "bonferroni",
+     conc.quantiles = c(mean, c(95, 5)))
+
+
+plot(disparity_results_all1, type = "box")
+plot(disparity_var_all1, type = "box")
+```
+
+```{r}
+grouped_data_all2 <- custom.subsets(coo_pca_all2$x[,1:3], 
+                                   group = as.factor(coo_pca_all2$fac$value))
+
+bootstrapped_data_all2 <- boot.matrix(grouped_data_all2, bootstraps = 1000)
+
+disparity_results_all2 <- dispRity(bootstrapped_data_all2, 
+                                  metric = c(sum, variances))
+
+disparity_var_all2 <- dispRity(bootstrapped_data_all2, metric = variances)
+
+summary(disparity_results_all2)
+test.dispRity(disparity_results_all2, bhatt.coeff,
+  correction = "bonferroni")
+
+
+
+
+
+test.dispRity(disparity_results_all2, test = wilcox.test,
+              comparisons = "pairwise", correction = "bonferroni")
+
+test.dispRity(disparity_var_all2, test = t.test, comparisons = "pairwise",
+     concatenate = FALSE, correction = "bonferroni",
+     conc.quantiles = c(mean, c(95, 5)))
+
+
+plot(disparity_results_all2, type = "box")
+plot(disparity_var_all2, type = "box")
+```
