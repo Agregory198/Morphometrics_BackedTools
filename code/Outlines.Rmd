@@ -58,7 +58,7 @@ coo <- Momocs::Out(li, fac=c(rep("BPA", length(BPA)),
                              rep("MAT", length(MAT)))
                    )
 
-Momocs::panel(coo, fac = "value")
+#Momocs::panel(coo, fac = "value")
 ```
 
 ```{r}
@@ -106,7 +106,7 @@ test.dispRity(disparity_var, test = t.test, comparisons = "pairwise",
      conc.quantiles = c(mean, c(95, 5)))
 
 
-plot(disparity_results, type = "box")
+plot(disparity_results, type = "box", ylab = "Sum of Variance")
 plot(disparity_var, type = "box")
 ```
 
@@ -468,27 +468,28 @@ coo_kg <- Momocs::Out(li_kg, fac=c(rep("DGL", length(DGL)),
                              rep("GBL", length(GBL)),
                              rep("SGL", length(SGL))))
 
-Momocs::panel(coo_kg, fac = "value")
+#Momocs::panel(coo_kg, fac = "value")
+```
 
-coo_kg |>
+```{r}
+coo_kg_std <- coo_kg |>
   Momocs::coo_center() |> Momocs::coo_scale() |>
-  Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
-  print() |> stack()
-```
+  Momocs::coo_align()
 
-```{r}
-coo.f_kg <- Momocs::efourier(coo_kg)
+
+coo.f_kg <- Momocs::efourier(coo_kg_std)
 coo.p_kg <- Momocs::PCA(coo.f_kg)
+
+coo.p_kg$fac$value = factor(coo.p_kg$fac$value)
 ```
 
 ```{r}
-plot(coo.p_kg, ~value)
+plot_PCA(coo.p_kg, ~value)
 Momocs::MANOVA(coo.p_kg, ~value)
+MANOVA_PW(coo.p_kg, fac = "value", retain = 3)
 
-#Momocs::PCcontrib(coo.p_bnk, nax=1:3)
-
-Momocs::hcontrib(coo.f_kg, harm.range = 1:12)
-boxplot(coo.f_kg)
+lda_kg <- LDA(coo.p_kg, 1)
+plot_LDA(lda_kg)
 ```
 
 ```{r}
@@ -508,7 +509,7 @@ test.dispRity(disparity_results_kg, bhatt.coeff,
 
 test.dispRity(disparity_results_kg, test = wilcox.test,
   correction = "bonferroni")
-plot(disparity_results_kg, type = "box")
+
 
 
 test.dispRity(disparity_var_kg, test = t.test,
@@ -516,6 +517,7 @@ test.dispRity(disparity_var_kg, test = t.test,
   correction = "bonferroni",
      conc.quantiles = c(mean, c(95, 5)))
 
+plot(disparity_results_kg, type = "box", ylab = "Sum of Variance")
 plot(disparity_var_kg, type = "box")
 ```
 
@@ -535,30 +537,42 @@ li_mat <- append(C, li_mat)
 
 coo_mat <- Momocs::Out(li_mat, fac=c(rep("C", length(C))))
 
-Momocs::panel(coo_mat, fac = "value")
+#Momocs::panel(coo_mat, fac = "value")
 ```
 
 ```{r}
-coo_mat |>
+coo_mat_std <- coo_mat |>
   Momocs::coo_center() |> Momocs::coo_scale() |>
-  Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
-  print() |> stack()
-```
+  Momocs::coo_align()
 
-```{r}
-coo.f_mat <- Momocs::efourier(coo_mat)
+
+coo.f_mat <- Momocs::efourier(coo_mat_std)
 coo.p_mat <- Momocs::PCA(coo.f_mat)
+
+coo.p_mat$fac$value = factor(coo.p_mat$fac$value)
 ```
 
 ```{r}
-plot(coo.p_mat, ~value)
-#Momocs::MANOVA(coo.p_mat, ~value)
-
-#Momocs::PCcontrib(coo.p_bnk, nax=1:3)
-
-Momocs::hcontrib(coo.f_mat, harm.range = 1:12)
-boxplot(coo.f_mat)
+plot_PCA(coo.p_mat, ~value)
 ```
+
+```{r}
+grouped_data_mat <- custom.subsets(coo.p_mat$x[,1:3], 
+                                  group = as.factor(coo.p_mat$fac$value))
+
+bootstrapped_data_mat <- boot.matrix(grouped_data_mat, bootstraps = 1000)
+
+disparity_results_mat<- dispRity(bootstrapped_data_mat, metric = c(sum, variances))
+
+
+disparity_var_mat <- dispRity(bootstrapped_data_mat, metric = variances)
+
+
+plot(disparity_results_mat, type = "box", ylab = "Sum of Variance", xlab = "")
+plot(disparity_var_mat, type = "box")
+```
+
+
 
 # Examine BPA separately by Strata
 
@@ -576,27 +590,40 @@ li_bpa <- append(BLD, li_bpa)
 
 coo_bpa <- Momocs::Out(li_bpa, fac=c(rep("BLD", length(BLD))))
 
-Momocs::panel(coo_bpa, fac = "value")
+#Momocs::panel(coo_bpa, fac = "value")
 
-coo_bpa |>
+```
+
+```{r}
+coo_bpa_std <- coo_bpa |>
   Momocs::coo_center() |> Momocs::coo_scale() |>
-  Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
-  print() |> stack()
-```
+  Momocs::coo_align()
 
-```{r}
-coo.f_bpa <- Momocs::efourier(coo_bpa)
+
+coo.f_bpa <- Momocs::efourier(coo_bpa_std)
 coo.p_bpa <- Momocs::PCA(coo.f_bpa)
+
+coo.p_bpa$fac$value = factor(coo.p_bpa$fac$value)
 ```
 
 ```{r}
-plot(coo.p_bpa, ~value)
-#Momocs::MANOVA(coo.p_mat, ~value)
+plot_PCA(coo.p_bpa, ~value)
+```
 
-#Momocs::PCcontrib(coo.p_bnk, nax=1:3)
+```{r}
+grouped_data_bpa <- custom.subsets(coo.p_bpa$x[,1:3], 
+                                  group = as.factor(coo.p_bpa$fac$value))
 
-Momocs::hcontrib(coo.f_bpa, harm.range = 1:12)
-boxplot(coo.f_bpa)
+bootstrapped_data_bpa <- boot.matrix(grouped_data_bpa, bootstraps = 1000)
+
+disparity_results_bpa <- dispRity(bootstrapped_data_bpa, metric = c(sum, variances))
+
+
+disparity_var_bpa <- dispRity(bootstrapped_data_bpa, metric = variances)
+
+
+plot(disparity_results_bpa, type = "box", ylab = "Sum of Variance", xlab = "")
+plot(disparity_var_bpa, type = "box")
 ```
 
 # Within and Between Sites
