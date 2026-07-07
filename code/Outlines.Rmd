@@ -120,58 +120,143 @@ BNK1_4 <- BNK1_files[BNK1_files %like% "%_4_%"]
 BNK1_5 <- BNK1_files[BNK1_files %like% "%_5_%"]
 BNK1_6 <- BNK1_files[BNK1_files %like% "%_6_%"]
 BNK1_7 <- BNK1_files[BNK1_files %like% "%_7_%"]
+BNK1_8 <- BNK1_files[BNK1_files %like% "%_8_%"]
+BNK1_9 <- BNK1_files[BNK1_files %like% "%_9_%"]
+BNK1_10 <- BNK1_files[BNK1_files %like% "%_10_%"]
 
 BNK1_2.5 <- append(BNK1_2, c(BNK1_4, BNK1_5))
 BNK1_6.7 <- append(BNK1_6, BNK1_7)
 
-one <- Momocs::import_jpg(BNK1_1)
-#two <- Momocs::import_jpg(BNK1_2)
-#four <- Momocs::import_jpg(BNK1_4)
-#five <- Momocs::import_jpg(BNK1_5)
-#six <- Momocs::import_jpg(BNK1_6)
-#seven <- Momocs::import_jpg(BNK1_7)
 
 two_five <- Momocs::import_jpg(BNK1_2.5)
 six_seven <- Momocs::import_jpg(BNK1_6.7)
 
+
+######################################
+one <- Momocs::import_jpg(BNK1_1)
+two <- Momocs::import_jpg(BNK1_2)
+four <- Momocs::import_jpg(BNK1_4)
+five <- Momocs::import_jpg(BNK1_5)
+six <- Momocs::import_jpg(BNK1_6)
+seven <- Momocs::import_jpg(BNK1_7)
+eight <- Momocs::import_jpg(BNK1_8)
+nine <- Momocs::import_jpg(BNK1_9)
+ten <- Momocs::import_jpg(BNK1_10)
 ```
+
+
+```{r}
+bnk1_all = c(one, two, four, five, six, seven, eight, nine, ten)
+
+coo_bnk_all = Momocs::Out(bnk1_all,
+                          fac = c(
+                            rep("one", length(one)),
+                            rep("two", length(two)),
+                            rep("four", length(four)),
+                            rep("five", length(five)),
+                            rep("six", length(six)),
+                            rep("seven", length(seven)),
+                            rep("eight", length(eight)),
+                            rep("nine", length(nine)),
+                            rep("ten", length(ten))
+                          ))
+
+#Momocs::panel(coo_bnk_all, fac = "value")
+```
+
+```{r}
+coo_bnk_all_std <- coo_bnk_all |>
+  Momocs::coo_center() |> Momocs::coo_scale() |>
+  Momocs::coo_align()
+
+
+coo.f_bnk_all <- Momocs::efourier(coo_bnk_all_std)
+coo.p_bnk_all <- Momocs::PCA(coo.f_bnk_all)
+
+coo.p_bnk_all$fac$value = factor(coo.p_bnk_all$fac$value,
+                                 levels = c("one", "two", "four", "five", "six",
+                                                 "seven", "eight", "nine", "ten"))
+```
+
+```{r}
+plot_PCA(coo.p_bnk_all, ~value)
+Momocs::MANOVA(coo.p_bnk_all, ~value)
+MANOVA_PW(coo.p_bnk_all, fac = "value", retain = 3)
+
+lda_bnk_all <- LDA(coo.p_bnk_all, 1)
+plot_LDA(lda_bnk_all)
+```
+
+```{r}
+grouped_data_bnk <- custom.subsets(coo.p_bnk_all$x[,1:3], 
+                                   group = as.factor(coo.p_bnk_all$fac$value))
+
+bootstrapped_data_bnk <- boot.matrix(grouped_data_bnk, bootstraps = 1000)
+
+disparity_results_bnk <- dispRity(bootstrapped_data_bnk, 
+                                  metric = c(sum, variances))
+
+disparity_var_bnk <- dispRity(bootstrapped_data_bnk, metric = variances)
+
+summary(disparity_results_bnk)
+test.dispRity(disparity_results_bnk, bhatt.coeff,
+  correction = "bonferroni")
+
+test.dispRity(disparity_results_bnk, test = wilcox.test,
+              comparisons = "pairwise",
+     correction = "bonferroni")
+
+
+
+test.dispRity(disparity_var_bnk, test = t.test, comparisons = "pairwise",
+     concatenate = FALSE, correction = "bonferroni",
+     conc.quantiles = c(mean, c(95, 5)))
+
+plot(disparity_results_bnk, type = "box", ylab = "Sum of Variance")
+plot(disparity_var_bnk, type = "box")
+```
+
+
+
+
+
+
 
 ```{r}
 li_bnk <- list()
 li_bnk <- append(one, two_five)
-#li <- append(li, four)
-#li <- append(li, five)
-#li <- append(li, six)
+
 li_bnk <- append(li_bnk, six_seven)
 
 coo_bnk <- Momocs::Out(li_bnk, fac=c(rep("one", length(one)),
                              rep("two-five", length(two_five)),
                              rep("six-seven", length(six_seven))))
 
-Momocs::panel(coo_bnk, fac = "value")
+#Momocs::panel(coo_bnk, fac = "value")
 ```
 
+
 ```{r}
-coo_bnk |>
+coo_bnk_std <- coo_bnk |>
   Momocs::coo_center() |> Momocs::coo_scale() |>
-  Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
-  print() |> stack()
-```
+  Momocs::coo_align()
 
-```{r}
-coo.f_bnk <- Momocs::efourier(coo_bnk)
+
+coo.f_bnk <- Momocs::efourier(coo_bnk_std)
 coo.p_bnk <- Momocs::PCA(coo.f_bnk)
+
+coo.p_bnk$fac$value = factor(coo.p_bnk$fac$value)
 ```
 
 ```{r}
-plot(coo.p_bnk, ~value)
+plot_PCA(coo.p_bnk, ~value)
 Momocs::MANOVA(coo.p_bnk, ~value)
+MANOVA_PW(coo.p_bnk, fac = "value", retain = 3)
 
-#Momocs::PCcontrib(coo.p_bnk, nax=1:3)
-
-Momocs::hcontrib(coo.f_bnk, harm.range = 1:12)
-boxplot(coo.f_bnk)
+lda_bnk <- LDA(coo.p_bnk, 1)
+plot_LDA(lda_bnk)
 ```
+
 
 ```{r}
 grouped_data_bnk <- custom.subsets(coo.p_bnk$x[,1:3], 
@@ -212,11 +297,95 @@ NBC_8 <- NBC_files[NBC_files %like% "%_8_%"]
 
 
 NBC_4.8 <- append(NBC_4, c(NBC_5, NBC_8))
-
-NBCthree <- Momocs::import_jpg(NBC_3)
 NBCfour_eight <- Momocs::import_jpg(NBC_4.8)
 
+
+#NBCone <- Momocs::import_jpg(NBC_1)
+NBCthree <- Momocs::import_jpg(NBC_3)
+NBCfour <- Momocs::import_jpg(NBC_4)
+NBCfive <- Momocs::import_jpg(NBC_5)
+NBCeight <- Momocs::import_jpg(NBC_8)
+
+
 ```
+
+
+```{r}
+nbc_all = c(#NBCone, 
+            NBCthree, 
+            NBCfour, 
+            NBCfive, 
+            NBCeight)
+
+coo_nbc_all = Momocs::Out(nbc_all,
+                          fac = c(
+                            #rep("one", length(NBCone)),
+                            rep("three", length(NBCthree)),
+                            rep("four", length(NBCfour)),
+                            rep("five", length(NBCfive)),
+                            rep("eight", length(NBCeight))
+                          ))
+
+#Momocs::panel(coo_bnk_all, fac = "value")
+```
+
+```{r}
+coo_nbc_all_std <- coo_nbc_all |>
+  Momocs::coo_center() |> Momocs::coo_scale() |>
+  Momocs::coo_align()
+
+
+coo.f_nbc_all <- Momocs::efourier(coo_nbc_all_std)
+coo.p_nbc_all <- Momocs::PCA(coo.f_nbc_all)
+
+coo.p_nbc_all$fac$value = factor(coo.p_nbc_all$fac$value,
+                                 levels = c(#"one", 
+                                            "three", 
+                                            "four", 
+                                            "five",
+                                            "eight"))
+```
+
+```{r}
+plot_PCA(coo.p_nbc_all, ~value)
+Momocs::MANOVA(coo.p_nbc_all, ~value)
+MANOVA_PW(coo.p_nbc_all, fac = "value", retain = 3)
+
+lda_nbc_all <- LDA(coo.p_nbc_all, 1)
+plot_LDA(lda_nbc_all)
+```
+
+```{r}
+grouped_data_nbc <- custom.subsets(coo.p_nbc_all$x[,1:3], 
+                                   group = as.factor(coo.p_nbc_all$fac$value))
+
+bootstrapped_data_nbc <- boot.matrix(grouped_data_nbc, bootstraps = 1000)
+
+disparity_results_nbc <- dispRity(bootstrapped_data_nbc, 
+                                  metric = c(sum, variances))
+
+disparity_var_nbc <- dispRity(bootstrapped_data_nbc, metric = variances)
+
+summary(disparity_results_nbc)
+test.dispRity(disparity_results_nbc, bhatt.coeff,
+  correction = "bonferroni")
+
+test.dispRity(disparity_results_nbc, test = wilcox.test,
+              comparisons = "pairwise",
+     correction = "bonferroni")
+
+
+
+test.dispRity(disparity_var_nbc, test = t.test, comparisons = "pairwise",
+     concatenate = FALSE, correction = "bonferroni",
+     conc.quantiles = c(mean, c(95, 5)))
+
+plot(disparity_results_nbc, type = "box", ylab = "Sum of Variance")
+plot(disparity_var_nbc, type = "box")
+```
+
+
+
 
 ```{r}
 li_nbc <- list()
@@ -225,29 +394,29 @@ li_nbc <- append(NBCthree, NBCfour_eight)
 coo_nbc <- Momocs::Out(li_nbc, fac=c(rep("three", length(NBCthree)),
                              rep("four-eight",length(NBCfour_eight))))
 
-Momocs::panel(coo_nbc, fac = "value")
+#Momocs::panel(coo_nbc, fac = "value")
 ```
 
+
 ```{r}
-coo_nbc |>
+coo_nbc_std <- coo_nbc |>
   Momocs::coo_center() |> Momocs::coo_scale() |>
-  Momocs::coo_alignxax() |> Momocs::coo_slidedirection("up") %T>%
-  print() |> stack()
-```
+  Momocs::coo_align()
 
-```{r}
-coo.f_nbc <- Momocs::efourier(coo_nbc)
+
+coo.f_nbc <- Momocs::efourier(coo_nbc_std)
 coo.p_nbc <- Momocs::PCA(coo.f_nbc)
+
+coo.p_nbc$fac$value = factor(coo.p_nbc$fac$value)
 ```
 
 ```{r}
-plot(coo.p_nbc, ~value)
+plot_PCA(coo.p_nbc, ~value)
 Momocs::MANOVA(coo.p_nbc, ~value)
+MANOVA_PW(coo.p_nbc, fac = "value", retain = 3)
 
-#Momocs::PCcontrib(coo.p_nbc, nax=1:3)
-
-Momocs::hcontrib(coo.f_nbc, harm.range = 1:12)
-boxplot(coo.f)
+lda_nbc <- LDA(coo.p_nbc, 1)
+plot_LDA(lda_nbc)
 ```
 
 ```{r}
